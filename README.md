@@ -24,7 +24,7 @@ Download the CENTOS minimal install ISO by choosing a [mirror](http://isoredirec
 	
 Create a new Virtual machine called CENTOS7 and add required CPU and memory and disks 
 
-You will have NAT by default. Add any additional networking adapters you need and use appopriate host-only / bridged / Internal / NAT
+You will have NAT by default. Add any additional networking adapters you need and use appropriate host-only / bridged / Internal / NAT
 
 Mount the ISO file and start installation
 
@@ -33,26 +33,33 @@ Note down your VM name from VirtualBox GUI. eg., CENTOS7
 
 #### Step 3: Install some pre-requisite packages and those you need
  Configure proxy (optional) 
-	Edit the file (__/etc/yum.conf__) to add a line
+	Edit the file (__/etc/yum.conf__) to add these lines
 	
 	proxy=http://proxyserver.mydomain.com:8080
 	# If you proxy server works with authentication
 	proxy_username=yum-user
 	proxy_password=password
 
+Install epel-release package 
 
-	yum --enablerepo=extras install epel-release
-	
+	sudo yum --enablerepo=extras install epel-release
+
+Install wget package 
+
 	sudo yum install -y wget
-	
+
+Install Development Tools package, since we need them later for VirtualBox Guest Additions to Compile and run
+
 	sudo yum -y groupinstall "Development Tools"
 	
 	sudo yum -y install wget gcc kernel-devel-$(uname -r) kernel-headers-$(uname -r) dkms binutils gcc make patch libgomp glibc-headers glibc-devel gcc make patch dkms qt libgomp ntp
-	
+
+Update all those packages to latest version
+
 	sudo yum -y update 
 	
 Reboot the machine and boot from the new kernel since the last command yum update may have updated the kernel too
-		If you wish to exclude the kernel when you execute update
+		If you wish to exclude the kernel when you execute `yum update`
 		
 	sudo yum -y update --exclude=kernel*
 
@@ -74,17 +81,20 @@ Reboot the machine and boot from the new kernel since the last command yum updat
 	sudo chmod 0600 /home/vagrant/.ssh/authorized_keys
 	sudo chown -R vagrant:vagrant /home/vagrant/.ssh
 	sudo chown vagrant:vagrant .ssh/authorized_keys
-	# Change this file
+	
+Change this file `/etc/ssh/sshd_config`
+	
 	sudo vi /etc/ssh/sshd_config
-
-	# AuthorizedKeysFile %h/.ssh/authorized_keys
+	
+Uncomment the following line, if exist else add the line
+	
 	AuthorizedKeysFile .ssh/authorized_keys
 
-	Verify you are able to authenticate with the vagrant private key.
-	from your host machine ssh with the vagrant private key
+Verify you are able to authenticate with the vagrant private key from your host machine ssh with the vagrant private key
+
 	ssh -i ~/.vagrant.d/insecure_private_key  vagrant@IP_ADDR_OF_YOUR_VM
 
-	If that ssh call succeeds, it is obvious all vagrant ssh calls will succeed too after we package it.
+If that ssh call succeeds, it is obvious that all vagrant ssh calls will succeed too after we package it.
 
 #### Step 6: Install guest additions
 
@@ -127,7 +137,7 @@ Shutdown the machine
 
 Edit the VM Settings on VirtualBox to remove the additional adapters other the default NAT adapter.
 
-Reset the MAC Address 
+Reset the MAC Address of the NAT adapter, so it gets new MAC.
 
 #### Step 8: Install Vagrant on your host machine, in this case MacOSX
 Navigate to https://www.vagrantup.com/downloads.html on your browser
@@ -139,7 +149,7 @@ verify the install done successfully
 
 #### Step 9: Package the box
 
-make the VAGRANT_LOG level as per your need from the available levels 		debug (verbose) info(normal) warn (quiet) error (very quiet)
+make the __`VAGRANT_LOG`__ level as per your need from the available levels 		`debug` (verbose) `info` (normal) `warn` (quiet) `error` (very quiet)
 
 	export VAGRANT_LOG=info
 
@@ -148,11 +158,11 @@ move to the directory where you need your box
 	sudo mkdir ~/vagrantboxes
 	cd ~/vagrantboxes
 
-package the box based on the CENTOS VM you have created
+package the box based on the CENTOS VM you have created. `CENTOS7` is the VM we have created before
 
 	vagrant package --base CENTOS7
 		
-This will create a file called package.box on the CWD
+This will create a file called package.box on the CWD. To override the output file
 
 	vagrant package --base CENTOS7 --output centos7.box
 		
@@ -175,7 +185,7 @@ If you have box with same name exist, remove any previously created box which is
 
 #### Step 11: Test the box you have created
 	
-Navigate to a directory to create a Vagrantfile and test it.
+Navigate to a directory to create a `Vagrantfile` and test it.
 
 	mkdir ~/vagrant_centos7
 	
@@ -183,9 +193,9 @@ Navigate to a directory to create a Vagrantfile and test it.
 	
 	vagrant init
 	
-This will create a default Vagrantfile on the directory vagrant_centos7
+This will create a default `Vagrantfile` on the directory `vagrant_centos7`
 
-Edit the Vagrantfile to make following configurations
+Edit the `Vagrantfile` to make following configurations
 
 Use the centos7 box to use
 
@@ -201,7 +211,7 @@ Sample Vagrantfile
 		Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   			config.vm.box = "centos7"
   			config.vm.boot_timeout = 1000
-  			config.vm.hostname = 'centos67.mydomain.local'
+  			config.vm.hostname = 'centos7.mydomain.local'
   			config.vm.network "private_network", ip: "192.168.10.200", virtualbox__hostonly: true
   			config.ssh.private_key_path = "~/.vagrant.d/insecure_private_key"
   			config.ssh.forward_agent = true
@@ -214,14 +224,20 @@ Sample Vagrantfile
 
 Power up your VM
 		
-		cd ~/vagrant_centos7
-		vagrant up
-		
+	cd ~/vagrant_centos7
+	vagrant up
+
+If you have not set up `VAGRANT_LOG` before, you could use inline for `debug` level
+
+	vagrant up --debug
+
 Watch out for errors, if there are any
 
 Once the VM you have just created is up and running, SSH in to it
 		
-		vagrant ssh
+	vagrant ssh
+		
+Hurray !! Your box is working !!
 		
 ### Further steps could be learning the following
 
@@ -255,9 +271,10 @@ You need to have librarian-chef installed
 
 	gem -v
 	gem install libraian-chef --no-ri --no-rdoc
+	
+`--no-ri --no-rdoc` indicates that we skip installing documentation and ri which we never will use or refer.
 
-
-do a librarian-chef init to create a Cheffile
+do a `librarian-chef init` to create a Cheffile
 
 	librarian-chef init
 
