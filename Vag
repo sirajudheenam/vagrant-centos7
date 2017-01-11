@@ -1,0 +1,98 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+VAGRANTFILE_API_VERSION = 2
+BOX = "ub1404"
+BOX_URL = "file:///Users/i072278/Downloads/Vagrantboxes/ub1404.box"
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  # Chef Server config  
+  config.vm.define "chef-server" do |server|
+    server.vm.box = BOX
+    server.vm.box_url = BOX_URL
+    server.vm.boot_timeout = 1000
+    server.vm.hostname = 'chefserver.abc.xyz'
+    server.vm.network "private_network", ip: "192.168.3.10", virtualbox__hostonly: true
+    server.ssh.private_key_path = "~/.vagrant.d/insecure_private_key"
+    server.ssh.forward_agent = true
+    server.ssh.insert_key = false
+    server.vm.provider :virtualbox do |vb|
+        vb.customize ["modifyvm", :id, "--memory", "2048"]
+        vb.gui = true
+    end
+    server.vm.provision "shell", inline: <<-SHELL
+      apt-get update
+      if [ ! -e "/tmp/chef-server-core_12.11.1-1_amd64.deb" ];then
+        wget -O /tmp/chef-server-core_12.11.1-1_amd64.deb https://packages.chef.io/stable/ubuntu/14.04/chef-server-core_12.11.1-1_amd64.deb
+        sudo dpkg -i /tmp/chef-server-core_12.11.1-1_amd64.deb
+      fi
+    SHELL
+  end
+
+  # Chef managed node config
+  config.vm.define "chef-node" do |node|
+    node.vm.box = BOX
+    node.vm.box_url = BOX_URL
+    node.vm.boot_timeout = 1000
+    node.vm.hostname = 'chefnode.abc.xyz'
+    node.vm.network "private_network", ip: "192.168.56.11", virtualbox__hostonly: true
+    node.ssh.private_key_path = "~/.vagrant.d/insecure_private_key"
+    node.ssh.forward_agent = true
+    node.ssh.insert_key = false
+    node.vm.provider :virtualbox do |vb|
+        vb.customize ["modifyvm", :id, "--memory", "1024"]
+        vb.gui = true
+    end
+  end
+  
+  # Chef Workstation config
+  config.vm.define "chef-ws" do |ws|
+    ws.vm.box = "ub1404"
+    ws.vm.box = BOX
+    ws.vm.box_url = BOX_URL
+    ws.vm.boot_timeout = 1000
+    ws.vm.hostname = 'chefnode.abc.xyz'
+    ws.vm.network "private_network", ip: "192.168.56.11", virtualbox__hostonly: true
+    ws.ssh.private_key_path = "~/.vagrant.d/insecure_private_key"
+    ws.ssh.forward_agent = true
+    ws.ssh.insert_key = false
+    ws.vm.provider :virtualbox do |vb|
+        vb.customize ["modifyvm", :id, "--memory", "1024"]
+        vb.gui = true
+    end
+  end
+
+end  
+    # https://www.linode.com/docs/applications/chef/deploy-a-chef-server-workstation-and-node-on-ubuntu-14-04
+    # On Server
+    # sudo chef-server-ctl reconfigure
+    # sudo chef-server-ctl user-create sam Sam Miller sam@abc.xyz Sybase123 --filename ~/.chef/sam.pem
+    # sudo chef-server-ctl org-create abc "ABC Inc" --association_user sam --filename ~/.chef/abc.pem
+   
+    # #On WorkStation
+    # Install ChefDK
+    # chef verify
+    # chef generate repo chef-repo
+    # cd chef-repo
+    # mkdir .chef
+    # scp -i ~/.vagrant.d/insecure_private_key vagrant@chefserver.abc.xyz:/home/vagrant/.chef/\*.pem ~/chef-repo/.chef/
+    # escape wild card with \* else you get zsh: no matches found: vagrant@chefserver.abc.xyz:/home/vagrant/.chef/*.pem
+    
+    
+
+    # $ knife ssl fetch
+    # WARNING: Certificates from chefserver.abc.xyz will be fetched and placed in your trusted_cert
+    # directory (/Users/i072278/.chef/trusted_certs).
+    #
+    # Knife has no means to verify these are the correct certificates. You should
+    # verify the authenticity of these certificates after downloading.
+    #
+    # Adding certificate for chefserver.abc.xyz in /Users/i072278/.chef/trusted_certs/chefserver_abc_xyz.crt
+    #
+    
+    # $ knife client list
+   # sudo adduser vagrant root
+   
+   # Make host entry at target for Chefserver eg., 192.168.56.30 chefserver chefserver.abc.xyz
+   
+   # knife bootstrap  192.168.56.20 -x vagrant -P vagrant --sudo --use-sudo-password
+
+    
